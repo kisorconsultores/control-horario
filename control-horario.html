@@ -18,16 +18,16 @@
   --white:#fff;--r:16px;--rs:10px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--navy);color:var(--white);overflow-x:hidden}
+html,body{font-family:'Inter',system-ui,sans-serif;background:var(--navy);color:var(--white);overflow-x:hidden}
 
 /* ── VISTAS ── */
-.view{display:none;min-height:100vh}
+.view{display:none;min-height:600px}
 .view.active{display:flex;flex-direction:column}
 
 /* ══════════════════════════════════════
    VISTA 1 — FICHAJE (empleados via QR)
 ══════════════════════════════════════ */
-#viewFichaje{background:var(--navy);align-items:stretch}
+#viewFichaje{background:var(--navy)}
 
 .fich-header{background:var(--navy2);padding:18px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
 .fich-empresa{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;color:var(--white)}
@@ -37,7 +37,7 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 
 /* Selección de empleado */
 .fich-section-title{font-size:.72rem;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.1em;text-align:center;padding:0 20px 12px}
-.empleados-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 20px}
+.empleados-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 20px;width:100%}
 .emp-btn{
   background:var(--navy2);
   border:2px solid rgba(255,255,255,.08);
@@ -51,7 +51,8 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
   font-size:1rem;
   color:var(--white);
   letter-spacing:.02em;
-  min-height:80px;
+  min-height:90px;
+  width:100%;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -126,7 +127,7 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
    VISTA 3 — PANEL EMPRESARIO
 ══════════════════════════════════════ */
 #viewPanel{background:var(--g50);color:var(--g800)}
-.panel-topbar{background:var(--navy);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.panel-topbar{background:var(--navy);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;z-index:50}
 .panel-topbar-brand{display:flex;align-items:center;gap:9px}
 .panel-topbar-icon{width:28px;height:28px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center}
 .panel-topbar-icon svg{width:14px;height:14px;fill:var(--navy)}
@@ -546,7 +547,7 @@ const DEFAULT_CONFIG = {
 const EMP_COLORS = ['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
 
 let config    = loadJSON(STORAGE_KEYS.config,    DEFAULT_CONFIG);
-let empleados = loadJSON(STORAGE_KEYS.empleados, ['Jose Francisco Serrano Rufino','Javier Serrano Rufino','Carmen Serrano Rufino','Pilar Serrano Rufino','Teresa Sanz Garcia']);
+let empleados = loadJSON(STORAGE_KEYS.empleados, []);
 let registros = loadJSON(STORAGE_KEYS.registros, []);
 
 let empActual = null;
@@ -584,11 +585,29 @@ function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-function irFichaje() {
+async function irFichaje() {
   showView('viewFichaje');
-  mostrarScreenEmpleados();
   document.getElementById('fichEmpresa').textContent = config.empresa || 'Control Horario';
   startClock();
+  await cargarEmpleadosDesdeSheet();
+  mostrarScreenEmpleados();
+}
+
+async function cargarEmpleadosDesdeSheet() {
+  try {
+    const url = APPS_SCRIPT_URL + '?tipo=empleados';
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (Array.isArray(data) && data.length > 0) {
+      empleados = data;
+      saveJSON(STORAGE_KEYS.empleados, empleados);
+      // Actualizar también el nombre de empresa si está en el Sheet
+    }
+  } catch (_) {
+    // Si falla la red, usar los guardados localmente
+    const local = loadJSON(STORAGE_KEYS.empleados, []);
+    if (local.length > 0) empleados = local;
+  }
 }
 function irLogin() {
   showView('viewLogin');
@@ -654,10 +673,18 @@ function volverEmpleados() {
 async function fichar(accion) {
   if (!empActual) return;
 
-  const now     = new Date();
+  // Obtener timestamp del servidor externo (TimeAPI.io)
+  let now = new Date();
+  try {
+    const tsResp = await fetch('https://timeapi.io/api/time/current/zone?timeZone=Europe/Madrid');
+    const tsData = await tsResp.json();
+    if (tsData && tsData.dateTime) now = new Date(tsData.dateTime);
+  } catch (_) {
+    // Si falla, usar hora del dispositivo
+  }
   const fecha   = now.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   const hora    = now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  const empresa = config.empresa || 'Mi Negocio';
+  const empresa = config.empresa || 'Serrano Arunda Turismo';
 
   const accionLabels = {
     entrada:          '🟢 ENTRADA',
