@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Control Horario · FinanSierra</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0c1a30;--navy2:#142240;--navy3:#1c2e50;
+  --cyan:#00c9a7;--cyan-d:#009e83;--cyan-l:#e0faf5;
+  --gold:#c9a84c;--gold-l:#e8c96a;
+  --green:#10b981;--green-l:#d1fae5;--green-d:#065f46;
+  --amber:#f59e0b;--amber-l:#fef3c7;--amber-d:#92400e;
+  --red:#ef4444;--red-l:#fee2e2;--red-d:#7f1d1d;
+  --blue:#3b82f6;--blue-l:#dbeafe;
+  --g50:#f8fafc;--g100:#f1f5f9;--g200:#e2e8f0;--g400:#94a3b8;--g600:#475569;--g800:#1e293b;
+  --white:#fff;--r:16px;--rs:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--navy);color:var(--white);overflow-x:hidden}
+
+/* ── VISTAS ── */
+.view{display:none;min-height:100vh}
+.view.active{display:flex;flex-direction:column}
+
+/* ══════════════════════════════════════
+   VISTA 1 — FICHAJE (empleados via QR)
+══════════════════════════════════════ */
+#viewFichaje{background:var(--navy);align-items:stretch}
+
+.fich-header{background:var(--navy2);padding:18px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
+.fich-empresa{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;color:var(--white)}
+.fich-sub{font-size:.72rem;color:var(--cyan);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.fich-clock{font-size:2rem;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--white);text-align:center;padding:20px;letter-spacing:.04em}
+.fich-date{font-size:.82rem;color:var(--g400);text-align:center;margin-top:-14px;padding-bottom:16px;text-transform:capitalize}
+
+/* Selección de empleado */
+.fich-section-title{font-size:.72rem;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.1em;text-align:center;padding:0 20px 12px}
+.empleados-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px 20px}
+.emp-btn{
+  background:var(--navy2);
+  border:2px solid rgba(255,255,255,.08);
+  border-radius:var(--r);
+  padding:22px 12px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .15s;
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;
+  font-size:1rem;
+  color:var(--white);
+  letter-spacing:.02em;
+  min-height:80px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1.2;
+  word-break:break-word;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+.emp-btn:active{transform:scale(.96);background:var(--cyan);border-color:var(--cyan);color:var(--navy)}
+.emp-btn:hover{border-color:var(--cyan);background:rgba(0,201,167,.1)}
+.emp-btn .emp-avatar{width:36px;height:36px;border-radius:50%;background:var(--navy3);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;margin:0 auto 8px;color:var(--cyan)}
+
+/* Pantalla de acciones */
+#screenAcciones{display:none;flex-direction:column;padding:0 20px 20px}
+.accion-quien{text-align:center;padding:16px 0 20px}
+.accion-quien .nombre{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.5rem;color:var(--cyan)}
+.accion-quien .hora{font-size:.82rem;color:var(--g400);margin-top:3px}
+.accion-btn{
+  width:100%;
+  padding:22px;
+  border:none;
+  border-radius:var(--r);
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;
+  font-size:1.1rem;
+  cursor:pointer;
+  margin-bottom:10px;
+  transition:all .15s;
+  letter-spacing:.02em;
+  -webkit-tap-highlight-color:transparent;
+}
+.accion-btn:active{transform:scale(.97)}
+.btn-entrada{background:var(--green);color:var(--white)}
+.btn-entrada:hover{background:#0d9e6c}
+.btn-inicio-descanso{background:var(--amber);color:var(--navy)}
+.btn-inicio-descanso:hover{background:#d97706}
+.btn-fin-descanso{background:var(--blue);color:var(--white)}
+.btn-fin-descanso:hover{background:#2563eb}
+.btn-salida{background:var(--red);color:var(--white)}
+.btn-salida:hover{background:#dc2626}
+.btn-volver{background:transparent;border:1.5px solid rgba(255,255,255,.15);color:var(--g400);font-size:.85rem;padding:12px;border-radius:var(--rs);width:100%;cursor:pointer;font-family:inherit;margin-top:4px;transition:all .15s}
+.btn-volver:hover{border-color:var(--g400);color:var(--white)}
+
+/* Confirmación */
+#screenConfirm{display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;flex:1}
+.confirm-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:2rem}
+.confirm-icon.ok{background:var(--green-l)}
+.confirm-icon.err{background:var(--red-l)}
+.confirm-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.2rem;margin-bottom:6px}
+.confirm-sub{font-size:.82rem;color:var(--g400);line-height:1.6}
+.confirm-auto{font-size:.72rem;color:var(--g600);margin-top:12px}
+.confirm-bar{height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:16px;width:120px;overflow:hidden}
+.confirm-bar-fill{height:100%;background:var(--cyan);border-radius:2px;width:0;transition:width 3s linear}
+
+/* ══════════════════════════════════════
+   VISTA 2 — LOGIN PANEL
+══════════════════════════════════════ */
+#viewLogin{background:var(--navy);align-items:center;justify-content:center;padding:20px}
+.login-box{background:var(--navy2);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:32px 28px;width:100%;max-width:360px;text-align:center}
+.login-logo{width:48px;height:48px;background:var(--gold);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.login-logo svg{width:24px;height:24px;fill:var(--navy)}
+.login-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;color:var(--white);margin-bottom:4px}
+.login-sub{font-size:.78rem;color:var(--g400);margin-bottom:22px}
+.login-input{width:100%;background:var(--navy3);border:1.5px solid rgba(255,255,255,.08);border-radius:var(--rs);padding:12px 14px;color:var(--white);font-size:1rem;font-family:inherit;outline:none;text-align:center;letter-spacing:.12em;margin-bottom:12px;transition:border-color .2s}
+.login-input:focus{border-color:var(--gold)}
+.login-btn{width:100%;background:var(--gold);color:var(--navy);border:none;border-radius:var(--rs);padding:13px;font-weight:700;font-size:.95rem;cursor:pointer;font-family:inherit;transition:background .15s}
+.login-btn:hover{background:var(--gold-l)}
+.login-err{font-size:.75rem;color:var(--red);margin-top:8px;display:none}
+.login-hint{font-size:.68rem;color:var(--g600);margin-top:12px}
+
+/* ══════════════════════════════════════
+   VISTA 3 — PANEL EMPRESARIO
+══════════════════════════════════════ */
+#viewPanel{background:var(--g50);color:var(--g800)}
+.panel-topbar{background:var(--navy);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.panel-topbar-brand{display:flex;align-items:center;gap:9px}
+.panel-topbar-icon{width:28px;height:28px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.panel-topbar-icon svg{width:14px;height:14px;fill:var(--navy)}
+.panel-topbar-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.88rem;color:var(--white)}
+.panel-topbar-actions{display:flex;gap:8px}
+.ptop-btn{background:rgba(255,255,255,.1);border:none;color:var(--white);padding:6px 12px;border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:5px}
+.ptop-btn:hover{background:rgba(255,255,255,.18)}
+.ptop-btn svg{width:12px;height:12px}
+.ptop-btn.gold{background:var(--gold);color:var(--navy)}
+.ptop-btn.gold:hover{background:var(--gold-l)}
+.ptop-btn.red{background:rgba(239,68,68,.2);color:#fca5a5}
+.ptop-btn.red:hover{background:rgba(239,68,68,.35)}
+
+.panel-content{padding:16px;max-width:900px;margin:0 auto}
+
+/* Tabs */
+.panel-tabs{display:flex;background:var(--white);border:1px solid var(--g200);border-radius:var(--r);padding:4px;gap:4px;margin-bottom:16px}
+.panel-tab{flex:1;padding:8px 10px;border:none;border-radius:var(--rs);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--g600);background:transparent;font-family:inherit;text-align:center}
+.panel-tab.active{background:var(--navy);color:var(--white)}
+
+/* Tab content */
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Cards */
+.p-card{background:var(--white);border:1px solid var(--g200);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.p-card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.78rem;color:var(--navy);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.p-card-title svg{width:14px;height:14px;flex-shrink:0}
+
+/* Config empresa */
+.cfg-field{margin-bottom:12px}
+.cfg-label{display:block;font-size:.7rem;font-weight:600;color:var(--g600);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+.cfg-input{width:100%;background:var(--g50);border:1.5px solid var(--g200);border-radius:var(--rs);padding:9px 12px;color:var(--g800);font-size:.88rem;font-family:inherit;outline:none;transition:border-color .2s}
+.cfg-input:focus{border-color:var(--navy)}
+.cfg-input.pass{letter-spacing:.15em}
+
+/* Empleados config */
+.emp-list-config{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:260px;overflow-y:auto}
+.emp-item-config{display:flex;align-items:center;gap:10px;background:var(--g50);border:1px solid var(--g200);border-radius:var(--rs);padding:9px 12px}
+.emp-item-config .emp-name{flex:1;font-weight:500;font-size:.85rem;color:var(--g800)}
+.emp-item-config .emp-color{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.emp-del-btn{background:none;border:none;color:var(--g400);cursor:pointer;padding:3px;border-radius:4px;transition:all .15s;display:flex}
+.emp-del-btn:hover{color:var(--red);background:var(--red-l)}
+.emp-del-btn svg{width:14px;height:14px}
+.emp-add-row{display:flex;gap:8px}
+.emp-add-input{flex:1;background:var(--g50);border:1.5px solid var(--g200);border-radius:var(--rs);padding:9px 12px;color:var(--g800);font-size:.88rem;font-family:inherit;outline:none;transition:border-color .2s}
+.emp-add-input:focus{border-color:var(--navy)}
+.emp-add-btn{background:var(--navy);color:var(--white);border:none;border-radius:var(--rs);padding:9px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .15s}
+.emp-add-btn:hover{background:var(--navy2)}
+
+/* Botones panel */
+.p-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 16px;border:none;border-radius:var(--rs);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;width:100%;margin-bottom:7px}
+.p-btn svg{width:14px;height:14px;flex-shrink:0}
+.p-btn-navy{background:var(--navy);color:var(--white)}
+.p-btn-navy:hover{background:var(--navy2)}
+.p-btn-gold{background:var(--gold);color:var(--navy)}
+.p-btn-gold:hover{background:var(--gold-l)}
+.p-btn-outline{background:transparent;border:1.5px solid var(--g200);color:var(--g600)}
+.p-btn-outline:hover{border-color:var(--navy);color:var(--navy)}
+.p-btn-green{background:var(--green);color:var(--white)}
+.p-btn-green:hover{background:#0d9e6c}
+.p-btn-danger{background:var(--red-l);border:1px solid rgba(239,68,68,.2);color:var(--red)}
+.p-btn-danger:hover{background:rgba(239,68,68,.2)}
+
+/* Registros */
+.reg-filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.reg-filter-input{background:var(--g50);border:1.5px solid var(--g200);border-radius:var(--rs);padding:7px 11px;color:var(--g800);font-size:.8rem;font-family:inherit;outline:none;transition:border-color .2s}
+.reg-filter-input:focus{border-color:var(--navy)}
+.reg-filter-select{background:var(--g50);border:1.5px solid var(--g200);border-radius:var(--rs);padding:7px 11px;color:var(--g800);font-size:.8rem;font-family:inherit;outline:none;cursor:pointer}
+
+.reg-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.reg-table thead tr{background:var(--navy)}
+.reg-table thead th{padding:9px 10px;text-align:left;color:rgba(255,255,255,.8);font-weight:600;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}
+.reg-table tbody tr:nth-child(even){background:var(--g50)}
+.reg-table tbody tr:hover{background:#f0f4ff}
+.reg-table tbody td{padding:8px 10px;border-bottom:1px solid var(--g100);color:var(--g800);vertical-align:middle}
+.reg-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:600;letter-spacing:.04em}
+.badge-entrada{background:var(--green-l);color:var(--green-d)}
+.badge-inicio_descanso{background:var(--amber-l);color:var(--amber-d)}
+.badge-fin_descanso{background:var(--blue-l);color:#1e40af}
+.badge-salida{background:var(--red-l);color:var(--red-d)}
+.reg-empty{text-align:center;padding:32px;color:var(--g400);font-size:.82rem}
+
+/* Resumen día */
+.resumen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.resumen-card{background:var(--g50);border:1px solid var(--g200);border-radius:var(--rs);padding:12px}
+.resumen-card .rc-name{font-weight:600;font-size:.82rem;color:var(--navy);margin-bottom:6px}
+.resumen-card .rc-estado{font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:8px;display:inline-block;margin-bottom:4px}
+.rc-dentro{background:var(--green-l);color:var(--green-d)}
+.rc-descanso{background:var(--amber-l);color:var(--amber-d)}
+.rc-fuera{background:var(--g100);color:var(--g600)}
+.resumen-card .rc-horas{font-size:.72rem;color:var(--g600)}
+
+/* QR modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--white);border-radius:20px;padding:24px;width:100%;max-width:340px;text-align:center}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;color:var(--navy);margin-bottom:6px}
+.modal-sub{font-size:.78rem;color:var(--g600);margin-bottom:16px}
+#qrCanvas{border-radius:12px;border:3px solid var(--g100)}
+.modal-url{font-size:.65rem;color:var(--g400);margin-top:10px;word-break:break-all;background:var(--g50);border-radius:6px;padding:6px 8px}
+.modal-btns{display:flex;gap:8px;margin-top:14px}
+.modal-btn{flex:1;padding:10px;border:none;border-radius:var(--rs);font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.modal-btn-print{background:var(--navy);color:var(--white)}
+.modal-btn-print:hover{background:var(--navy2)}
+.modal-btn-close{background:var(--g100);color:var(--g600)}
+.modal-btn-close:hover{background:var(--g200)}
+
+/* Toast */
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:var(--white);padding:9px 18px;border-radius:30px;font-size:.78rem;font-weight:500;z-index:9999;transition:transform .2s ease;border:1px solid rgba(255,255,255,.1);box-shadow:0 8px 24px rgba(0,0,0,.4);white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:rgba(16,185,129,.3);color:var(--green)}
+.toast.err{border-color:rgba(239,68,68,.3);color:#fca5a5}
+
+/* Print QR */
+@media print{
+  body *{display:none !important}
+  #printQRArea{display:block !important;text-align:center;padding:40px}
+  #printQRArea h2{font-size:22px;margin-bottom:6px;color:#000}
+  #printQRArea p{font-size:13px;color:#555;margin-bottom:20px}
+  #printQRCanvas{display:block !important;margin:0 auto}
+  #printQRArea .print-inst{font-size:11px;color:#888;margin-top:16px;max-width:280px;margin-left:auto;margin-right:auto;line-height:1.6}
+}
+#printQRArea{display:none}
+</style>
+</head>
+<body>
+
+<!-- ══ ÁREA IMPRESIÓN QR ══ -->
+<div id="printQRArea">
+  <h2 id="printEmpresaNombre">Control Horario</h2>
+  <p>Escanea este código para fichar</p>
+  <canvas id="printQRCanvas" width="250" height="250"></canvas>
+  <div class="print-inst">Escanea con la cámara de tu móvil · Selecciona tu nombre · Registra tu entrada, descanso o salida</div>
+</div>
+
+<!-- ══ VISTA: FICHAJE ══ -->
+<div id="viewFichaje" class="view active">
+  <div class="fich-header">
+    <div class="fich-empresa" id="fichEmpresa">Control Horario</div>
+    <div class="fich-sub">FinanSierra · Registro de jornada</div>
+  </div>
+  <div class="fich-clock" id="fichClock">00:00:00</div>
+  <div class="fich-date" id="fichDate"></div>
+
+  <!-- Selección empleado -->
+  <div id="screenEmpleados">
+    <div class="fich-section-title">¿Quién eres?</div>
+    <div class="empleados-grid" id="empleadosGrid"></div>
+  </div>
+
+  <!-- Acciones -->
+  <div id="screenAcciones">
+    <div class="accion-quien">
+      <div class="nombre" id="accionNombre"></div>
+      <div class="hora" id="accionHora"></div>
+    </div>
+    <button class="accion-btn btn-entrada"         onclick="fichar('entrada')">🟢 ENTRADA</button>
+    <button class="accion-btn btn-inicio-descanso" onclick="fichar('inicio_descanso')">🟡 INICIO DESCANSO</button>
+    <button class="accion-btn btn-fin-descanso"    onclick="fichar('fin_descanso')">🔵 FIN DESCANSO</button>
+    <button class="accion-btn btn-salida"          onclick="fichar('salida')">🔴 SALIDA</button>
+    <button class="btn-volver" onclick="volverEmpleados()">← Volver</button>
+  </div>
+
+  <!-- Confirmación -->
+  <div id="screenConfirm">
+    <div class="confirm-icon ok" id="confirmIcon">✅</div>
+    <div class="confirm-title" id="confirmTitle">Fichaje registrado</div>
+    <div class="confirm-sub" id="confirmSub"></div>
+    <div class="confirm-auto" id="confirmAuto">Volviendo en 3 segundos...</div>
+    <div class="confirm-bar"><div class="confirm-bar-fill" id="confirmBarFill"></div></div>
+  </div>
+
+  <!-- Acceso panel (pie) -->
+  <div style="padding:20px;text-align:center;margin-top:auto">
+    <button onclick="irLogin()" style="background:none;border:none;color:rgba(255,255,255,.2);font-size:.65rem;cursor:pointer;font-family:inherit;padding:8px">Panel empresario</button>
+  </div>
+</div>
+
+<!-- ══ VISTA: LOGIN ══ -->
+<div id="viewLogin" class="view">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <div class="login-title">Panel Empresario</div>
+    <div class="login-sub">Introduce tu contraseña de acceso</div>
+    <input type="password" class="login-input" id="loginPass" placeholder="••••••" maxlength="20"
+      onkeydown="if(event.key==='Enter')checkLogin()">
+    <button class="login-btn" onclick="checkLogin()">Acceder</button>
+    <div class="login-err" id="loginErr">Contraseña incorrecta</div>
+    <div class="login-hint">Panel de gestión · FinanSierra</div>
+    <div style="margin-top:14px">
+      <button onclick="irFichaje()" style="background:none;border:none;color:rgba(255,255,255,.25);font-size:.7rem;cursor:pointer;font-family:inherit">← Volver al fichaje</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VISTA: PANEL ══ -->
+<div id="viewPanel" class="view">
+  <div class="panel-topbar">
+    <div class="panel-topbar-brand">
+      <div class="panel-topbar-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="panel-topbar-name">Panel Empresario</div>
+    </div>
+    <div class="panel-topbar-actions">
+      <button class="ptop-btn gold" onclick="mostrarQR()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 17v3h3M14 20h3"/></svg>
+        QR
+      </button>
+      <button class="ptop-btn" onclick="exportarCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        CSV
+      </button>
+      <button class="ptop-btn red" onclick="irFichaje()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Salir
+      </button>
+    </div>
+  </div>
+
+  <div class="panel-content">
+    <div class="panel-tabs">
+      <button class="panel-tab active" onclick="setTab('hoy',this)">Hoy</button>
+      <button class="panel-tab" onclick="setTab('registros',this)">Registros</button>
+      <button class="panel-tab" onclick="setTab('config',this)">Configuración</button>
+    </div>
+
+    <!-- TAB: HOY -->
+    <div class="tab-content active" id="tab-hoy">
+      <div class="p-card">
+        <div class="p-card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Estado actual — <span id="hoyFecha" style="color:var(--g600);font-weight:400;text-transform:none;letter-spacing:0;font-size:.78rem"></span>
+        </div>
+        <div class="resumen-grid" id="resumenGrid">
+          <div style="color:var(--g400);font-size:.8rem;grid-column:1/-1;text-align:center;padding:16px">Sin empleados configurados</div>
+        </div>
+        <button class="p-btn p-btn-outline" onclick="renderResumenHoy()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-4"/></svg>
+          Actualizar
+        </button>
+      </div>
+
+      <div class="p-card">
+        <div class="p-card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/></svg>
+          Fichajes de hoy
+        </div>
+        <div id="tablaHoy"></div>
+      </div>
+    </div>
+
+    <!-- TAB: REGISTROS -->
+    <div class="tab-content" id="tab-registros">
+      <div class="p-card">
+        <div class="p-card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          Historial de fichajes
+        </div>
+        <div class="reg-filters">
+          <input type="date" class="reg-filter-input" id="filtroFecha" onchange="renderTablaRegistros()">
+          <select class="reg-filter-select" id="filtroEmpleado" onchange="renderTablaRegistros()">
+            <option value="">Todos los empleados</option>
+          </select>
+          <select class="reg-filter-select" id="filtroAccion" onchange="renderTablaRegistros()">
+            <option value="">Todas las acciones</option>
+            <option value="entrada">Entrada</option>
+            <option value="inicio_descanso">Inicio descanso</option>
+            <option value="fin_descanso">Fin descanso</option>
+            <option value="salida">Salida</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="reg-table" id="tablaRegistros">
+            <thead><tr>
+              <th>Fecha</th><th>Hora</th><th>Empleado</th><th>Acción</th>
+            </tr></thead>
+            <tbody id="registrosBody">
+              <tr><td colspan="4" class="reg-empty">Sin registros</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button class="p-btn p-btn-navy" style="width:auto;flex:1" onclick="exportarCSV()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar CSV
+          </button>
+          <button class="p-btn p-btn-danger" style="width:auto;flex:1" onclick="borrarTodo()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            Borrar todo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: CONFIG -->
+    <div class="tab-content" id="tab-config">
+      <div class="p-card">
+        <div class="p-card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+          Datos del negocio
+        </div>
+        <div class="cfg-field">
+          <label class="cfg-label">Nombre del negocio</label>
+          <input type="text" class="cfg-input" id="cfgEmpresa" placeholder="Bar El Rincón" oninput="guardarConfig()">
+        </div>
+        <div class="cfg-field">
+          <label class="cfg-label">Email del empresario (recibe los fichajes)</label>
+          <input type="email" class="cfg-input" id="cfgEmail" placeholder="empresario@gmail.com" oninput="guardarConfig()">
+        </div>
+        <div class="cfg-field" style="background:var(--cyan-l);border:1px solid rgba(0,201,167,.3);border-radius:var(--rs);padding:10px 12px;">
+          <div style="font-size:.72rem;color:var(--navy);font-weight:600;margin-bottom:3px">Google Sheets conectado</div>
+          <div style="font-size:.68rem;color:var(--g600);line-height:1.6">Los fichajes se guardan automaticamente en Google Sheets via Kisor Control Horario. El empresario recibe un resumen diario por email.</div>
+        </div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Empleados
+        </div>
+        <div class="emp-list-config" id="empListConfig"></div>
+        <div class="emp-add-row">
+          <input type="text" class="emp-add-input" id="empNuevoNombre" placeholder="Nombre del empleado" maxlength="30"
+            onkeydown="if(event.key==='Enter')addEmpleado()">
+          <button class="emp-add-btn" onclick="addEmpleado()">Añadir</button>
+        </div>
+      </div>
+
+      <div class="p-card">
+        <div class="p-card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Seguridad
+        </div>
+        <div class="cfg-field">
+          <label class="cfg-label">Contraseña del panel</label>
+          <input type="password" class="cfg-input pass" id="cfgPass" placeholder="Contraseña actual" maxlength="20">
+        </div>
+        <div class="cfg-field">
+          <label class="cfg-label">Nueva contraseña</label>
+          <input type="password" class="cfg-input pass" id="cfgPassNueva" placeholder="Nueva contraseña" maxlength="20">
+        </div>
+        <button class="p-btn p-btn-navy" onclick="cambiarPassword()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Cambiar contraseña
+        </button>
+      </div>
+
+      <div class="p-card">
+        <div class="p-card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 17v3h3M14 20h3"/></svg>
+          Código QR de fichaje
+        </div>
+        <div style="font-size:.78rem;color:var(--g600);margin-bottom:12px;line-height:1.6">
+          Genera el QR que los empleados escanearán para fichar. Imprímelo y colócalo en un lugar visible del local.
+        </div>
+        <button class="p-btn p-btn-gold" onclick="mostrarQR()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 17v3h3M14 20h3"/></svg>
+          Generar e imprimir QR
+        </button>
+      </div>
+
+      <div class="p-card">
+        <div class="p-card-title" style="color:var(--red)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Zona de peligro
+        </div>
+        <button class="p-btn p-btn-danger" onclick="borrarTodo()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Borrar todos los registros
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL QR ══ -->
+<div class="modal-overlay" id="modalQR">
+  <div class="modal-box">
+    <div class="modal-title">Código QR de fichaje</div>
+    <div class="modal-sub">Imprime y coloca en tu local</div>
+    <canvas id="qrCanvas" width="220" height="220"></canvas>
+    <div class="modal-url" id="qrURL"></div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-print" onclick="imprimirQR()">Imprimir</button>
+      <button class="modal-btn modal-btn-close" onclick="cerrarQR()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- QR lib -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  ESTADO Y CONFIGURACIÓN
+// ══════════════════════════════════════════════════════════
+// ── URL del webhook Google Apps Script (Kisor Control Horario) ──
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-dSzt-u3-DZUIX-1cLrL8JO-oIddO8dgrMyjMEKMcCm-_V7oBY-0Kb2EsjEPkEV0/exec';
+
+const STORAGE_KEYS = {
+  config:    'fsCH_config',
+  empleados: 'fsCH_empleados',
+  registros: 'fsCH_registros',
+};
+
+const DEFAULT_CONFIG = {
+  empresa: 'Mi Negocio',
+  email:   '',
+  w3key:   '',
+  pass:    'admin1234',
+};
+
+const EMP_COLORS = ['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+
+let config    = loadJSON(STORAGE_KEYS.config,    DEFAULT_CONFIG);
+let empleados = loadJSON(STORAGE_KEYS.empleados, ['María','Pedro','Juan','Lucía']);
+let registros = loadJSON(STORAGE_KEYS.registros, []);
+
+let empActual = null;
+let clockInterval;
+let confirmTimeout;
+
+// ── Detectar si viene desde QR (?fichar=1) ──────────────
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('panel') === '1') {
+  irLogin();
+}
+
+// ══════════════════════════════════════════════════════════
+//  RELOJ
+// ══════════════════════════════════════════════════════════
+function startClock() {
+  updateClock();
+  clockInterval = setInterval(updateClock, 1000);
+}
+function updateClock() {
+  const now = new Date();
+  document.getElementById('fichClock').textContent =
+    now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  document.getElementById('fichDate').textContent =
+    now.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const acHora = document.getElementById('accionHora');
+  if (acHora) acHora.textContent = now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }) + ' · ' +
+    now.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+}
+
+// ══════════════════════════════════════════════════════════
+//  NAVEGACIÓN ENTRE VISTAS
+// ══════════════════════════════════════════════════════════
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function irFichaje() {
+  showView('viewFichaje');
+  mostrarScreenEmpleados();
+  document.getElementById('fichEmpresa').textContent = config.empresa || 'Control Horario';
+  startClock();
+}
+function irLogin() {
+  showView('viewLogin');
+  setTimeout(() => document.getElementById('loginPass').focus(), 200);
+}
+function irPanel() {
+  showView('viewPanel');
+  cargarConfigUI();
+  renderEmpListConfig();
+  renderResumenHoy();
+  renderTablaHoy();
+  renderTablaRegistros();
+  actualizarFiltroEmpleados();
+}
+
+// ══════════════════════════════════════════════════════════
+//  FICHAJE — PANTALLAS
+// ══════════════════════════════════════════════════════════
+function mostrarScreenEmpleados() {
+  document.getElementById('screenEmpleados').style.display = 'block';
+  document.getElementById('screenAcciones').style.display  = 'none';
+  document.getElementById('screenConfirm').style.display   = 'none';
+  renderEmpleadosGrid();
+}
+
+function renderEmpleadosGrid() {
+  const grid = document.getElementById('empleadosGrid');
+  grid.innerHTML = '';
+  if (!empleados.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,.3);padding:20px;font-size:.85rem">Sin empleados configurados.<br>Accede al panel para añadirlos.</div>';
+    return;
+  }
+  empleados.forEach((nombre, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'emp-btn';
+    const color = EMP_COLORS[i % EMP_COLORS.length];
+    btn.innerHTML = `
+      <div>
+        <div class="emp-avatar" style="background:${color}22;color:${color}">${initials(nombre)}</div>
+        ${nombre.toUpperCase()}
+      </div>`;
+    btn.onclick = () => seleccionarEmpleado(nombre, i);
+    grid.appendChild(btn);
+  });
+}
+
+function seleccionarEmpleado(nombre, idx) {
+  empActual = { nombre, idx };
+  document.getElementById('accionNombre').textContent = nombre.toUpperCase();
+  document.getElementById('screenEmpleados').style.display = 'none';
+  document.getElementById('screenAcciones').style.display  = 'flex';
+  document.getElementById('screenConfirm').style.display   = 'none';
+}
+
+function volverEmpleados() {
+  empActual = null;
+  mostrarScreenEmpleados();
+}
+
+// ══════════════════════════════════════════════════════════
+//  FICHAR — ENVIAR EMAIL
+// ══════════════════════════════════════════════════════════
+async function fichar(accion) {
+  if (!empActual) return;
+
+  const now     = new Date();
+  const fecha   = now.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const hora    = now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const empresa = config.empresa || 'Mi Negocio';
+
+  const accionLabels = {
+    entrada:          '🟢 ENTRADA',
+    inicio_descanso:  '🟡 INICIO DESCANSO',
+    fin_descanso:     '🔵 FIN DESCANSO',
+    salida:           '🔴 SALIDA',
+  };
+
+  const registro = {
+    id:       Date.now(),
+    empleado: empActual.nombre,
+    accion,
+    fecha:    now.toLocaleDateString('es-ES'),
+    hora,
+    ts:       now.toISOString(),
+    empresa,
+  };
+
+  // 1. Guardar localmente (respaldo en el dispositivo)
+  registros.push(registro);
+  saveJSON(STORAGE_KEYS.registros, registros);
+
+  // 2. Mostrar confirmación inmediata — no esperar a la red
+  mostrarConfirm(true, accionLabels[accion], empActual.nombre, hora);
+
+  // 3. Enviar a Google Sheets via Apps Script (timestamp del servidor Google)
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        empresa:  registro.empresa,
+        empleado: registro.empleado,
+        accion:   accionLabels[accion],
+        fecha:    registro.fecha,
+        hora:     registro.hora,
+        id:       String(registro.id)
+      })
+    });
+  } catch (_) {
+    // Si falla la red, el registro local es el respaldo
+  }
+}
+
+function mostrarConfirm(ok, accion, nombre, hora) {
+  document.getElementById('screenEmpleados').style.display = 'none';
+  document.getElementById('screenAcciones').style.display  = 'none';
+  document.getElementById('screenConfirm').style.display   = 'flex';
+
+  document.getElementById('confirmIcon').textContent   = ok ? '✅' : '❌';
+  document.getElementById('confirmIcon').className     = 'confirm-icon ' + (ok ? 'ok' : 'err');
+  document.getElementById('confirmTitle').textContent  = ok ? 'Fichaje registrado' : 'Error al fichar';
+  document.getElementById('confirmSub').textContent    = `${nombre} · ${accion} · ${hora}`;
+  document.getElementById('confirmAuto').textContent   = 'Volviendo en 3 segundos...';
+
+  const bar = document.getElementById('confirmBarFill');
+  bar.style.transition = 'none';
+  bar.style.width = '0';
+  setTimeout(() => { bar.style.transition = 'width 3s linear'; bar.style.width = '100%'; }, 50);
+
+  clearTimeout(confirmTimeout);
+  confirmTimeout = setTimeout(() => {
+    empActual = null;
+    mostrarScreenEmpleados();
+  }, 3000);
+}
+
+// ══════════════════════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════════════════════
+function checkLogin() {
+  const pass = document.getElementById('loginPass').value;
+  if (pass === config.pass) {
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginErr').style.display = 'none';
+    irPanel();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  PANEL — TABS
+// ══════════════════════════════════════════════════════════
+function setTab(id, btn) {
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  if (id === 'hoy')        { renderResumenHoy(); renderTablaHoy(); }
+  if (id === 'registros')  { renderTablaRegistros(); actualizarFiltroEmpleados(); }
+}
+
+// ══════════════════════════════════════════════════════════
+//  PANEL — RESUMEN HOY
+// ══════════════════════════════════════════════════════════
+function renderResumenHoy() {
+  const hoy = new Date().toLocaleDateString('es-ES');
+  document.getElementById('hoyFecha').textContent =
+    new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  const grid = document.getElementById('resumenGrid');
+  if (!empleados.length) {
+    grid.innerHTML = '<div style="color:var(--g400);font-size:.8rem;grid-column:1/-1;text-align:center;padding:16px">Sin empleados configurados</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  empleados.forEach((nombre, i) => {
+    const regsHoy = registros.filter(r => r.empleado === nombre && r.fecha === hoy)
+      .sort((a, b) => a.ts.localeCompare(b.ts));
+
+    const ultimo = regsHoy[regsHoy.length - 1];
+    let estado = 'fuera', estadoLabel = 'Sin fichar';
+    if (ultimo) {
+      if (ultimo.accion === 'entrada')          { estado = 'dentro';   estadoLabel = 'En el trabajo'; }
+      if (ultimo.accion === 'inicio_descanso')  { estado = 'descanso'; estadoLabel = 'En descanso'; }
+      if (ultimo.accion === 'fin_descanso')     { estado = 'dentro';   estadoLabel = 'En el trabajo'; }
+      if (ultimo.accion === 'salida')           { estado = 'fuera';    estadoLabel = 'Ha salido'; }
+    }
+
+    // Calcular horas trabajadas
+    let minsTrabajados = 0;
+    let entradaTS = null;
+    let descInicioTS = null;
+    regsHoy.forEach(r => {
+      if (r.accion === 'entrada')          entradaTS    = new Date(r.ts);
+      if (r.accion === 'inicio_descanso' && entradaTS) {
+        minsTrabajados += (new Date(r.ts) - entradaTS) / 60000;
+        entradaTS = null; descInicioTS = new Date(r.ts);
+      }
+      if (r.accion === 'fin_descanso')     entradaTS    = new Date(r.ts);
+      if (r.accion === 'salida' && entradaTS) {
+        minsTrabajados += (new Date(r.ts) - entradaTS) / 60000;
+        entradaTS = null;
+      }
+    });
+    // Si está dentro, sumar desde la última entrada hasta ahora
+    if (entradaTS && (estado === 'dentro')) {
+      minsTrabajados += (new Date() - entradaTS) / 60000;
+    }
+
+    const horas = Math.floor(minsTrabajados / 60);
+    const mins  = Math.floor(minsTrabajados % 60);
+    const horasStr = minsTrabajados > 0 ? `${horas}h ${mins}m trabajadas` : '';
+    const color = EMP_COLORS[i % EMP_COLORS.length];
+
+    const card = document.createElement('div');
+    card.className = 'resumen-card';
+    card.innerHTML = `
+      <div class="rc-name" style="color:${color}">${nombre}</div>
+      <span class="rc-estado rc-${estado}">${estadoLabel}</span>
+      <div class="rc-horas">${horasStr || 'Sin actividad hoy'}</div>
+      ${ultimo ? `<div class="rc-horas" style="margin-top:2px">Último: ${ultimo.hora}</div>` : ''}`;
+    grid.appendChild(card);
+  });
+}
+
+function renderTablaHoy() {
+  const hoy = new Date().toLocaleDateString('es-ES');
+  const regsHoy = registros.filter(r => r.fecha === hoy).sort((a, b) => b.ts.localeCompare(a.ts));
+  const contenedor = document.getElementById('tablaHoy');
+  if (!regsHoy.length) {
+    contenedor.innerHTML = '<div class="reg-empty">Sin fichajes hoy</div>';
+    return;
+  }
+  contenedor.innerHTML = `<div style="overflow-x:auto"><table class="reg-table">
+    <thead><tr><th>Hora</th><th>Empleado</th><th>Acción</th></tr></thead>
+    <tbody>${regsHoy.map(r => `<tr>
+      <td>${r.hora}</td>
+      <td><strong>${r.empleado}</strong></td>
+      <td><span class="reg-badge badge-${r.accion}">${labelAccion(r.accion)}</span></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+//  PANEL — REGISTROS
+// ══════════════════════════════════════════════════════════
+function actualizarFiltroEmpleados() {
+  const sel = document.getElementById('filtroEmpleado');
+  const val = sel.value;
+  sel.innerHTML = '<option value="">Todos los empleados</option>';
+  empleados.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n; opt.textContent = n;
+    if (n === val) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function renderTablaRegistros() {
+  const filtFecha    = document.getElementById('filtroFecha')?.value;
+  const filtEmpleado = document.getElementById('filtroEmpleado')?.value;
+  const filtAccion   = document.getElementById('filtroAccion')?.value;
+
+  let regs = [...registros].sort((a, b) => b.ts.localeCompare(a.ts));
+  if (filtFecha) {
+    const fechaFmt = new Date(filtFecha).toLocaleDateString('es-ES');
+    regs = regs.filter(r => r.fecha === fechaFmt);
+  }
+  if (filtEmpleado) regs = regs.filter(r => r.empleado === filtEmpleado);
+  if (filtAccion)   regs = regs.filter(r => r.accion   === filtAccion);
+
+  const tbody = document.getElementById('registrosBody');
+  if (!regs.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="reg-empty">Sin registros para estos filtros</td></tr>';
+    return;
+  }
+  tbody.innerHTML = regs.map(r => `<tr>
+    <td>${r.fecha}</td>
+    <td>${r.hora}</td>
+    <td><strong>${r.empleado}</strong></td>
+    <td><span class="reg-badge badge-${r.accion}">${labelAccion(r.accion)}</span></td>
+  </tr>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  PANEL — CONFIGURACIÓN
+// ══════════════════════════════════════════════════════════
+function cargarConfigUI() {
+  document.getElementById('cfgEmpresa').value = config.empresa || '';
+  document.getElementById('cfgEmail').value   = config.email   || '';
+  document.getElementById('cfgW3Key').value   = config.w3key   || '';
+}
+
+function guardarConfig() {
+  config.empresa = document.getElementById('cfgEmpresa').value.trim();
+  config.email   = document.getElementById('cfgEmail').value.trim();
+  config.w3key   = document.getElementById('cfgW3Key').value.trim();
+  saveJSON(STORAGE_KEYS.config, config);
+}
+
+function renderEmpListConfig() {
+  const list = document.getElementById('empListConfig');
+  list.innerHTML = '';
+  if (!empleados.length) {
+    list.innerHTML = '<div style="color:var(--g400);font-size:.8rem;text-align:center;padding:12px">Sin empleados</div>';
+    return;
+  }
+  empleados.forEach((nombre, i) => {
+    const color = EMP_COLORS[i % EMP_COLORS.length];
+    const div = document.createElement('div');
+    div.className = 'emp-item-config';
+    div.innerHTML = `
+      <div class="emp-color" style="background:${color}"></div>
+      <span class="emp-name">${nombre}</span>
+      <button class="emp-del-btn" onclick="delEmpleado(${i})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`;
+    list.appendChild(div);
+  });
+}
+
+function addEmpleado() {
+  const input = document.getElementById('empNuevoNombre');
+  const nombre = input.value.trim();
+  if (!nombre) { toast('Escribe el nombre', 'err'); return; }
+  if (empleados.includes(nombre)) { toast('Ya existe ese empleado', 'err'); return; }
+  empleados.push(nombre);
+  saveJSON(STORAGE_KEYS.empleados, empleados);
+  input.value = '';
+  renderEmpListConfig();
+  actualizarFiltroEmpleados();
+  toast(nombre + ' añadido', 'ok');
+}
+
+function delEmpleado(idx) {
+  const nombre = empleados[idx];
+  if (!confirm('¿Eliminar a ' + nombre + ' de la lista?')) return;
+  empleados.splice(idx, 1);
+  saveJSON(STORAGE_KEYS.empleados, empleados);
+  renderEmpListConfig();
+  actualizarFiltroEmpleados();
+  toast(nombre + ' eliminado', 'ok');
+}
+
+function cambiarPassword() {
+  const actual = document.getElementById('cfgPass').value;
+  const nueva  = document.getElementById('cfgPassNueva').value.trim();
+  if (actual !== config.pass) { toast('Contraseña actual incorrecta', 'err'); return; }
+  if (nueva.length < 4)       { toast('La nueva contraseña debe tener al menos 4 caracteres', 'err'); return; }
+  config.pass = nueva;
+  saveJSON(STORAGE_KEYS.config, config);
+  document.getElementById('cfgPass').value = '';
+  document.getElementById('cfgPassNueva').value = '';
+  toast('Contraseña cambiada', 'ok');
+}
+
+// ══════════════════════════════════════════════════════════
+//  QR
+// ══════════════════════════════════════════════════════════
+function getQRUrl() {
+  const base = window.location.href.split('?')[0];
+  return base; // La URL limpia = pantalla de fichaje
+}
+
+function mostrarQR() {
+  const url = getQRUrl();
+  document.getElementById('qrURL').textContent = url;
+
+  // Generar QR en el canvas del modal
+  const canvas = document.getElementById('qrCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  generarQRCanvas(canvas, url, 220);
+
+  document.getElementById('modalQR').classList.add('open');
+}
+
+function cerrarQR() {
+  document.getElementById('modalQR').classList.remove('open');
+}
+
+function imprimirQR() {
+  const empresa = config.empresa || 'Control Horario';
+  const url     = getQRUrl();
+
+  // Copiar QR al canvas de impresión
+  const printCanvas = document.getElementById('printQRCanvas');
+  generarQRCanvas(printCanvas, url, 250);
+  document.getElementById('printEmpresaNombre').textContent = empresa;
+  window.print();
+}
+
+function generarQRCanvas(canvas, text, size) {
+  // Usamos la lib QRCode pero renderizamos en nuestro canvas
+  const tempDiv = document.createElement('div');
+  tempDiv.style.display = 'none';
+  document.body.appendChild(tempDiv);
+
+  new QRCode(tempDiv, {
+    text,
+    width:  size,
+    height: size,
+    colorDark:  '#0c1a30',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  setTimeout(() => {
+    const img = tempDiv.querySelector('img');
+    const ctx = canvas.getContext('2d');
+    canvas.width = size; canvas.height = size;
+    if (img) {
+      const i = new Image();
+      i.onload = () => { ctx.drawImage(i, 0, 0, size, size); };
+      i.src = img.src;
+    }
+    document.body.removeChild(tempDiv);
+  }, 100);
+}
+
+// ══════════════════════════════════════════════════════════
+//  EXPORTAR CSV
+// ══════════════════════════════════════════════════════════
+function exportarCSV() {
+  if (!registros.length) { toast('Sin registros para exportar', 'err'); return; }
+  const header = 'Empresa,Empleado,Acción,Fecha,Hora,Timestamp\n';
+  const rows = [...registros]
+    .sort((a, b) => a.ts.localeCompare(b.ts))
+    .map(r => `"${r.empresa || config.empresa}","${r.empleado}","${labelAccion(r.accion)}","${r.fecha}","${r.hora}","${r.ts}"`)
+    .join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const fecha = new Date().toLocaleDateString('es-ES').replace(/\//g,'-');
+  a.href = url; a.download = `control-horario-${fecha}.csv`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast('CSV exportado', 'ok');
+}
+
+function borrarTodo() {
+  if (!confirm('¿Borrar TODOS los registros de fichaje? Esta acción no se puede deshacer.')) return;
+  if (!confirm('Confirma de nuevo: ¿borrar todos los registros?')) return;
+  registros = [];
+  saveJSON(STORAGE_KEYS.registros, registros);
+  renderResumenHoy();
+  renderTablaHoy();
+  renderTablaRegistros();
+  toast('Registros borrados', 'ok');
+}
+
+// ══════════════════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════════════════
+function labelAccion(a) {
+  const map = { entrada:'Entrada', inicio_descanso:'Inicio descanso', fin_descanso:'Fin descanso', salida:'Salida' };
+  return map[a] || a;
+}
+function initials(n) {
+  return n.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
+}
+function loadJSON(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch (_) { return def; }
+}
+function saveJSON(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch (_) {}
+}
+
+let toastT;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  clearTimeout(toastT);
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  toastT = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+irFichaje();
+</script>
+</body>
+</html>
